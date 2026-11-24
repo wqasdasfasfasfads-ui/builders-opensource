@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Forum - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Forum</h1>
+
+    <details class="new-post" id="new-post-box">
+      <summary>New post</summary>
+      <form id="post-form" class="post-form" autocomplete="off">
+        <label>Title
+          <input type="text" id="post-title" required minlength="3" maxlength="100">
+        </label>
+        <label>Text
+          <textarea id="post-body" rows="5" maxlength="5000"></textarea>
+        </label>
+        <label>Picture (optional)
+          <input type="file" id="post-image" accept="image/png,image/jpeg,image/webp,image/gif">
+        </label>
+        <button type="submit" id="post-btn">Post</button>
+        <p id="post-status" class="hint"></p>
+      </form>
+    </details>
+
+    <% if (posts.length === 0) { %>
+      <p class="empty-state">No posts yet - be the first!</p>
+    <% } else { %>
+      <ul class="forum-list">
+        <% posts.forEach(function (p) { %>
+          <li class="forum-item">
+            <a href="/forum/<%= p.id %>" class="forum-item__title"><%= p.title %></a>
+            <% if (p.preview) { %><p class="forum-item__preview"><%= p.preview %></p><% } %>
+            <div class="forum-item__meta">
+              <%- include('partials/author', { a: p.author }) %>
+              <span><%= fmtDate(p.createdAt) %></span>
+              <span>💬 <%= p.commentCount %></span>
+              <% if (p.hasImage) { %><span>🖼️</span><% } %>
+            </div>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </main>
+
+  <script>
+    const form = document.getElementById('post-form');
+    const btn = document.getElementById('post-btn');
+    const status = document.getElementById('post-status');
+
+    function setStatus(text, cls) { status.textContent = text; status.className = cls || 'hint'; }
+
+    // Any picture -> JPEG, at most 1280px on the long side.
+    function toJpegDataUrl(file) {
+      return new Promise(function (resolve, reject) {
+        const img = new Image();
+        img.onload = function () {
+          const tries = [[1280, 0.82], [1024, 0.7], [800, 0.6]];
+          for (let i = 0; i < tries.length; i++) {
+            const max = tries[i][0];
+            const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+            c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            const url = c.toDataURL('image/jpeg', tries[i][1]);
+            if (url.length < 2000000) { URL.revokeObjectURL(img.src); return resolve(url); }
+          }
+          reject(new Error('too big'));
+        };
+        img.onerror = function () { reject(new Error('bad image')); };
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const title = document.getElementById('post-title').value.trim();
+      const body = document.getElementById('post-body').value.trim();
+      const file = document.getElementById('post-image').files[0];
+      btn.disabled = true;
+      setStatus('Posting...');
+      try {
+        let image = null;
+        if (file) image = await toJpegDataUrl(file);
+        const res = await fetch('/forum/post', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: title, body: body, image: image }),
+        });
+        const data = await res.json();
+        if (data.ok) { location.href = '/forum/' + data.id; return; }
+        setStatus(data.error || 'Something went wrong.', 'error');
+      } catch (err) {
+        setStatus(err.message === 'bad image' || err.message === 'too big'
+          ? "Couldn't use that picture. Try another one."
+          : "Couldn't reach the server.", 'error');
+      }
+      btn.disabled = false;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Admin</h1>
+    <p class="page-subtitle">Ban a player for the time you choose, or unban them.</p>
+    <% if (flash) { %><p class="<%= flash.type === 'error' ? 'error' : 'success' %>"><%= flash.text %></p><% } %>
+
+    <h2>Games waiting to be published</h2>
+    <% if (waitingGames.length === 0) { %>
+      <p class="hint">No games are waiting.</p>
+    <% } else { %>
+      <ul class="players-list">
+        <% waitingGames.forEach(function (g) { %>
+          <li class="player-row admin-row">
+            <div class="player-row__info">
+              <span class="player-row__name"><%= g.name %></span>
+              <span class="hint"><%= g.author ? 'by ' + g.author + ' - ' : '' %><%= g.file %><%= g.description ? ' - ' + g.description : '' %></span>
+            </div>
+            <form method="post" action="/admin/games/publish/<%= encodeURIComponent(g.id) %>" class="inline-ban"
+                  onsubmit="return confirm('Publish this game?')">
+              <button type="submit" class="play-btn--secondary">Publish</button>
+            </form>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+
+    <h2>T-shirts waiting to be published</h2>
+    <% if (waitingClothes.length === 0) { %>
+      <p class="hint">No T-shirts are waiting.</p>
+    <% } else { %>
+      <ul class="players-list">
+        <% waitingClothes.forEach(function (c) { %>
+          <li class="player-row admin-row">
+            <a href="/admin/clothing/texture/<%= encodeURIComponent(c.id) %>" target="_blank" class="player-row__avatar" title="Open the full shirt picture">
+              <img src="/admin/clothing/icon/<%= encodeURIComponent(c.id) %>" width="48" height="48" alt="" style="object-fit:contain;background:#11141a;border-radius:8px">
+            </a>
+            <div class="player-row__info">
+              <span class="player-row__name"><%= c.name %></span>
+              <span class="hint"><%= c.author ? 'by ' + c.author + ' - ' : '' %><%= c.description %></span>
+            </div>
+            <form method="post" action="/admin/clothing/publish/<%= encodeURIComponent(c.id) %>" class="inline-ban"
+                  onsubmit="return confirm('Publish this T-shirt?')">
+              <input type="number" name="price" min="0" max="10000" value="<%= c.price || 0 %>" class="ban-amount" aria-label="Price">
+              <button type="submit" class="play-btn--secondary">Publish</button>
+            </form>
+            <form method="post" action="/admin/clothing/reject/<%= encodeURIComponent(c.id) %>" class="inline-ban"
+                  onsubmit="return confirm('Reject this T-shirt?')">
+              <button type="submit" class="danger-btn">Reject</button>
+            </form>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+
+    <h2>Players</h2>
+
+    <ul class="players-list">
+      <% players.forEach(function (p) { %>
+        <li class="player-row admin-row">
+          <a href="/profile/<%= p.id %>" class="player-row__avatar"><%- avatarHtml(p, 48) %></a>
+          <div class="player-row__info">
+            <a href="/profile/<%= p.id %>" class="player-row__name<%= p.isSuper ? ' nick-super' : '' %>"><%= p.username %><% if (p.emoji) { %> <span class="nick-emoji"><%= p.emoji %></span><% } %></a>
+            <% if (p.ban) { %>
+              <span class="error admin-row__ban">
+                Banned <%= p.ban.until === null ? 'forever' : 'until ' + fmtDate(p.ban.until) %><%= p.ban.reason ? ' - ' + p.ban.reason : '' %>
+              </span>
+            <% } %>
+          </div>
+
+          <% if (p.isAdmin) { %>
+            <span class="badge badge--admin">Admin</span>
+          <% } else if (p.ban) { %>
+            <form method="post" action="/admin/unban/<%= p.id %>" class="inline-ban">
+              <button type="submit" class="play-btn--secondary">Unban</button>
+            </form>
+          <% } else { %>
+            <form method="post" action="/admin/ban/<%= p.id %>" class="inline-ban ban-form"
+                  onsubmit="return confirm('Ban this player?')">
+              <input type="number" name="amount" min="1" value="1" class="ban-amount" aria-label="Amount">
+              <select name="unit" class="ban-unit" aria-label="Unit">
+                <option value="minutes">minutes</option>
+                <option value="hours">hours</option>
+                <option value="days" selected>days</option>
+                <option value="forever">forever</option>
+              </select>
+              <input type="text" name="reason" maxlength="200" placeholder="Reason (optional)" class="ban-reason">
+              <button type="submit" class="danger-btn">Ban</button>
+            </form>
+          <% } %>
+        </li>
+      <% }); %>
+    </ul>
+  </main>
+
+  <script>
+    document.querySelectorAll('.ban-form').forEach(function (f) {
+      const unit = f.querySelector('.ban-unit');
+      const amount = f.querySelector('.ban-amount');
+      unit.addEventListener('change', function () { amount.disabled = unit.value === 'forever'; });
+    });
+  </script>
+</body>
+</html>

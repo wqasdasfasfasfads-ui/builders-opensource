@@ -1,0 +1,69 @@
+<style>
+  .srv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9999}
+  .srv-overlay.open{display:flex}
+  .srv-box{background:#1d1f27;color:#fff;border-radius:14px;padding:20px;width:min(420px,92vw);box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  .srv-box h3{margin:0 0 4px}
+  .srv-box .srv-sub{opacity:.7;font-size:13px;margin:0 0 12px}
+  .srv-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;margin:6px 0;border-radius:10px;background:#2a2d38}
+  .srv-row b{min-width:80px}
+  .srv-bar{flex:1;height:8px;border-radius:4px;background:#3a3e4d;overflow:hidden}
+  .srv-bar i{display:block;height:100%;background:#4caf50}
+  .srv-row button{border:0;border-radius:8px;padding:7px 14px;cursor:pointer;font-weight:600}
+  .srv-row button:disabled{opacity:.4;cursor:not-allowed}
+  .srv-actions{display:flex;justify-content:space-between;margin-top:12px}
+  .srv-actions button{border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+</style>
+<div class="srv-overlay" id="srv-overlay">
+  <div class="srv-box">
+    <h3>Choose a server</h3>
+    <p class="srv-sub" id="srv-sub">Loading...</p>
+    <div id="srv-list"></div>
+    <div class="srv-actions">
+      <button id="srv-auto">Best server</button>
+      <button id="srv-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+<script>
+  // chooseServer(gameId) -> Promise<"S1".."S5" | null>  (null = cancelled)
+  function chooseServer(gameId) {
+    return new Promise(async (resolve) => {
+      const ov = document.getElementById('srv-overlay');
+      const list = document.getElementById('srv-list');
+      const sub = document.getElementById('srv-sub');
+      const done = (v) => { ov.classList.remove('open'); resolve(v); };
+      ov.classList.add('open');
+      list.innerHTML = '';
+      sub.textContent = 'Loading...';
+      document.getElementById('srv-cancel').onclick = () => done(null);
+      let data;
+      try {
+        const r = await fetch('/api/servers/' + encodeURIComponent(gameId));
+        data = await r.json();
+      } catch (e) { data = { ok: false }; }
+      if (!data.ok) {
+        sub.textContent = data.error === 'no_server_slots'
+          ? 'All 100 servers are taken by other games right now.'
+          : "Couldn't load servers.";
+        return;
+      }
+      sub.textContent = 'Up to ' + data.max_players + ' players per server';
+      data.servers.forEach((s) => {
+        const row = document.createElement('div');
+        row.className = 'srv-row';
+        row.innerHTML = '<b>Server ' + s.server + '</b><div class="srv-bar"><i style="width:' +
+          Math.round(100 * s.players / s.max) + '%"></i></div><span>' + s.players + '/' + s.max +
+          '</span><button ' + (s.full ? 'disabled' : '') + '>' + (s.full ? 'Full' : 'Join') + '</button>';
+        row.querySelector('button').onclick = () => done(s.room);
+        list.appendChild(row);
+      });
+      document.getElementById('srv-auto').onclick = () => {
+        // the fullest server that still has room = players meet each other
+        const open = data.servers.filter((s) => !s.full);
+        if (!open.length) return;
+        open.sort((a, b) => b.players - a.players);
+        done(open[0].room);
+      };
+    });
+  }
+</script>

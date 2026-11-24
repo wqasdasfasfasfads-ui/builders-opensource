@@ -1,0 +1,30 @@
+{
+  "name": "roblox-classic-shirt",
+  "width": 585,
+  "height": 559,
+  "torso": {
+    "top":    [231, 8, 128, 64],
+    "bottom": [231, 204, 128, 64],
+    "right":  [165, 74, 64, 128],
+    "front":  [231, 74, 128, 128],
+    "left":   [361, 74, 64, 128],
+    "back":   [427, 74, 128, 128]
+  },
+  "rightArm": {
+    "top":    [217, 289, 64, 64],
+    "bottom": [217, 485, 64, 64],
+    "right":  [19, 355, 64, 128],
+    "back":   [85, 355, 64, 128],
+    "left":   [151, 355, 64, 128],
+    "front":  [217, 355, 64, 128]
+  },
+  "leftArm": {
+    "top":    [308, 289, 64, 64],
+    "bottom": [308, 485, 64, 64],
+    "front":  [308, 355, 64, 128],
+    "right":  [374, 355, 64, 128],
+    "back":   [440, 355, 64, 128],
+    "left":   [506, 355, 64, 128]
+  },
+  "_note": "Each rect is [x, y, width, height] in pixels of the 585x559 PNG. Same layout as the classic Roblox shirt template. 'right'/'left' are the character's own right/left."
+}

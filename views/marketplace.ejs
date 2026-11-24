@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketplace - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Marketplace</h1>
+
+    <form class="market-search" method="get" action="/marketplace" role="search">
+      <input type="text" name="q" id="market-q" value="<%= q %>" placeholder="Search items..." maxlength="100" autocomplete="off" aria-label="Search the marketplace">
+      <button type="submit">Search</button>
+      <% if (q) { %><a class="market-search__clear" href="/marketplace">Clear</a><% } %>
+    </form>
+    <p class="market-make"><button type="button" class="super-open-btn<%= (user.superUntil && user.superUntil > Date.now()) ? ' super-open-btn--on' : '' %>" id="super-open"><svg class="sup-bolt-sm" viewBox="0 0 64 80" aria-hidden="true"><path d="M40 2 L8 44 H28 L20 78 L58 30 H36 Z"/></svg> Pluse</button></p>
+    <% if (typeof roles !== 'undefined' && roles.admin) { %>
+    <p class="market-make"><a class="play-btn" href="/clothing/create">+ Make a T-shirt (2D)</a></p>
+    <% } %>
+    <% if (buyError === 'not_enough_coins') { %>
+      <p class="error">Not enough coins for that one yet - come back tomorrow for your daily bonus.</p>
+    <% } %>
+
+    <% if (buyError === 'offsale') { %>
+      <p class="error">That item is offsale - it can't be bought any more.</p>
+    <% } %>
+
+    <% if (buyError === 'slots_full') { %>
+      <p class="error">All <%= maxEquipped %> slots are used - take something off in Avatar first.</p>
+    <% } %>
+
+    <section class="card-grid" data-market-grid>
+      <% const owned = user.ownedCostumes || []; %>
+      <% const worn = user.equippedCostumes || []; %>
+      <% const sup = !!(user.superUntil && user.superUntil > Date.now()); %>
+      <% costumes.forEach(function (costume) { %>
+        <article class="item-card" data-costume-id="<%= costume.id %>"
+          data-colors="<%= JSON.stringify(Object.assign({}, user.colors || {}, costume.colors || {})) %>"
+          data-hat="<%= JSON.stringify(costume.hat || null) %>"
+          data-shirt="<%= costume.shirt && costume.shirt.url ? costume.shirt.url : '' %>"
+          data-search="<%= (costume.name + ' ' + costume.description + ' ' + costume.id).toLowerCase().replace(/[-_]+/g, ' ') %>">
+          <div class="item-card__icon-wrap view3d-btn" role="button" tabindex="0" title="Click to view in 3D">
+            <img class="item-card__icon" src="/marketplace/icon/<%= costume.id %>" alt="<%= costume.name %> preview">
+          </div>
+          <h3><%= costume.name %></h3>
+          <p><%= costume.description %></p>
+          <% if (costume.id === 'mega-cape') { %><p class="item-card__price item-card__price--offsale">&#9889; Pluse only</p><% } else if (costume.offsale) { %><p class="item-card__price item-card__price--offsale">Offsale</p><% } else if (costume.price) { %><p class="item-card__price"><span class="coin-icon">$</span> <% if (sup) { %><s style="opacity:.55"><%= costume.price %></s> <%= priceFor(user, costume.price) %> <small>(-10% Pluse)</small><% } else { %><%= costume.price %><% } %></p><% } %>
+
+          <% if (owned.includes(costume.id)) { %>
+            <% if (worn.includes(costume.id)) { %>
+              <p class="badge badge--equipped">Equipped</p>
+              <form method="post" action="/marketplace/unequip/<%= costume.id %>">
+                <button type="submit" class="play-btn play-btn--secondary">Take off</button>
+              </form>
+            <% } else { %>
+              <form method="post" action="/marketplace/equip/<%= costume.id %>">
+                <button type="submit" class="play-btn">Equip</button>
+              </form>
+            <% } %>
+          <% } else if (costume.id === 'mega-cape') { %>
+            <p class="badge badge--offsale">Get Pluse to unlock</p>
+          <% } else if (costume.offsale) { %>
+            <p class="badge badge--offsale">Not for sale</p>
+          <% } else { %>
+            <form method="post" action="/marketplace/buy/<%= costume.id %>">
+              <button type="submit" class="play-btn">Get</button>
+            </form>
+          <% } %>
+        </article>
+      <% }); %>
+      <% if (costumes.length === 0) { %>
+        <p class="empty-state"><%= q ? 'No costumes match "' + q + '".' : 'Nothing here yet. Costumes will show up here soon.' %></p>
+      <% } %>
+    </section>
+
+    <h2 style="margin-top:2rem">Animations</h2>
+    <section class="card-grid" data-market-grid>
+      <% const ownedAnims = user.ownedAnimations || []; %>
+      <% animations.forEach(function (anim) { %>
+        <article class="item-card" data-search="<%= (anim.name + ' ' + anim.description + ' ' + anim.id).toLowerCase().replace(/[-_]+/g, ' ') %>">
+          <h3><%= anim.name %></h3>
+          <p><%= anim.description %></p>
+          <% if (anim.offsale) { %><p class="item-card__price item-card__price--offsale">Offsale</p><% } else if (anim.price) { %><p class="item-card__price"><span class="coin-icon">$</span> <% if (sup) { %><s style="opacity:.55"><%= anim.price %></s> <%= priceFor(user, anim.price) %> <small>(-10% Pluse)</small><% } else { %><%= anim.price %><% } %></p><% } %>
+          <% if (ownedAnims.includes(anim.id)) { %>
+            <p class="badge badge--equipped">Owned</p>
+          <% } else if (anim.offsale) { %>
+            <p class="badge badge--offsale">Not for sale</p>
+          <% } else { %>
+            <form method="post" action="/marketplace/buy-animation/<%= anim.id %>">
+              <button type="submit" class="play-btn">Get</button>
+            </form>
+          <% } %>
+        </article>
+      <% }); %>
+      <% if (animations.length === 0) { %>
+        <p class="empty-state"><%= q ? 'No animations match "' + q + '".' : 'No animations yet.' %></p>
+      <% } %>
+    </section>
+  </main>
+
+  <div class="view3d-modal" id="view3d-modal" hidden>
+    <div class="view3d-modal__box">
+      <button type="button" class="view3d-modal__close" id="view3d-close" aria-label="Close">&times;</button>
+      <h2 id="view3d-title"></h2>
+      <div class="avatar-3d" id="view3d-stage" data-avatar3d data-colors="{}"></div>
+      <div class="cloth-tools" style="justify-content:center;margin-top:10px">
+        <button type="button" class="play-btn play-btn--secondary" data-view="0">Front</button>
+        <button type="button" class="play-btn play-btn--secondary" data-view="1.5708">Left</button>
+        <button type="button" class="play-btn play-btn--secondary" data-view="3.1416">Back</button>
+        <button type="button" class="play-btn play-btn--secondary" data-view="-1.5708">Right</button>
+      </div>
+      <p class="hint avatar-3d__hint" style="text-align:center">This is how it looks on your character. Drag to rotate.</p>
+    </div>
+  </div>
+  <script type="module" src="/avatar3d.js?v=<%= Date.now() %>"></script>
+  <script>
+    (function () {
+      var modal = document.getElementById("view3d-modal");
+      var stage = document.getElementById("view3d-stage");
+      function parse(v) { try { return JSON.parse(v || "null"); } catch (e) { return null; } }
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest(".view3d-btn");
+        if (btn) {
+          var card = btn.closest(".item-card");
+          document.getElementById("view3d-title").textContent = card.querySelector("h3").textContent;
+          modal.hidden = false;
+          if (stage.__avatar3d && stage.__avatar3d.setLook) {
+            stage.__avatar3d.setLook(parse(card.dataset.colors), parse(card.dataset.hat), card.dataset.shirt || "");
+            stage.__avatar3d.rotateTo(0);
+          }
+          return;
+        }
+        var v = e.target.closest("#view3d-modal [data-view]");
+        if (v && stage.__avatar3d) { stage.__avatar3d.rotateTo(Number(v.dataset.view)); return; }
+        if (e.target === modal || e.target.id === "view3d-close") modal.hidden = true;
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") modal.hidden = true;
+        if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("view3d-btn")) { e.preventDefault(); e.target.click(); }
+      });
+    })();
+  </script>
+  <script>
+    // Live search: hides cards that don't match while you type.
+    // (Without JS the form still works - the server filters via ?q=.)
+    (function () {
+      var input = document.getElementById("market-q");
+      if (!input) return;
+      var form = input.form;
+      var grids = Array.prototype.slice.call(document.querySelectorAll("[data-market-grid]"));
+
+      function norm(v) { return String(v).toLowerCase().replace(/[-_]+/g, " "); }
+
+      function apply() {
+        var words = norm(input.value).split(/\s+/).filter(Boolean);
+        grids.forEach(function (grid) {
+          var cards = grid.querySelectorAll(".item-card");
+          var shown = 0;
+          cards.forEach(function (card) {
+            var hay = card.getAttribute("data-search") || "";
+            var ok = words.every(function (w) { return hay.indexOf(w) !== -1; });
+            card.hidden = !ok;
+            if (ok) shown++;
+          });
+          var note = grid.querySelector(".empty-state--live");
+          if (cards.length && !shown) {
+            if (!note) {
+              note = document.createElement("p");
+              note.className = "empty-state empty-state--live";
+              grid.appendChild(note);
+            }
+            note.textContent = 'Nothing found for "' + input.value.trim() + '".';
+          } else if (note) {
+            note.remove();
+          }
+        });
+        // keep the URL shareable without reloading
+        var url = new URL(window.location.href);
+        if (input.value.trim()) url.searchParams.set("q", input.value.trim());
+        else url.searchParams.delete("q");
+        url.searchParams.delete("error");
+        history.replaceState(null, "", url);
+      }
+
+      input.addEventListener("input", apply);
+      form.addEventListener("submit", function (e) { e.preventDefault(); apply(); });
+      apply();
+    })();
+  </script>
+</body>
+</html>

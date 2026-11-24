@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Buy coins - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Buy coins</h1>
+    <p class="market-make"><button type="button" class="super-open-btn<%= (user.superUntil && user.superUntil > Date.now()) ? ' super-open-btn--on' : '' %>" id="super-open"><svg class="sup-bolt-sm" viewBox="0 0 64 80" aria-hidden="true"><path d="M40 2 L8 44 H28 L20 78 L58 30 H36 Z"/></svg> Pluse</button></p>
+    <p>You have <span class="coin-icon">$</span> <strong><%= user.coins %></strong> coins. Pay safely with PayPal - coins are added right after the payment.</p>
+
+    <% if (status === 'success') { %><p class="success">Payment received - your coins were added. Thank you!</p><% } %>
+    <% if (status === 'cancelled') { %><p class="error">Payment cancelled. You were not charged.</p><% } %>
+    <% if (status === 'failed') { %><p class="error">The payment was not completed. You were not charged.</p><% } %>
+    <% if (status === 'error') { %><p class="error">Something went wrong. If PayPal charged you but the coins did not arrive, use the Help page and include your nickname.</p><% } %>
+    <% if (!configured) { %><p class="error">Purchases are not set up yet (PayPal keys missing).</p><% } %>
+
+    <section class="card-grid">
+      <% packages.forEach(function (p) { %>
+        <article class="item-card">
+          <h3><span class="coin-icon">$</span> <%= p.coins %></h3>
+          <p class="item-card__price">$<%= p.price %></p>
+          <form method="post" action="/coins/buy/<%= p.id %>">
+            <button type="submit" <%= configured ? '' : 'disabled' %>>Buy with PayPal</button>
+          </form>
+        </article>
+      <% }); %>
+    </section>
+    <p>Purchases are final. Problems? Open the <a href="/help">Help</a> page.</p>
+  </main>
+</body>
+</html>

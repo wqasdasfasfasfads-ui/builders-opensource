@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avatar - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Avatar</h1>
+    <p class="page-subtitle">Your inventory on the left, how your character looks on the right.</p>
+
+    <section class="avatar-layout">
+      <div class="avatar-panel">
+        <h2>Inventory</h2>
+        <p class="hint">Costumes you've bought in the <a href="/marketplace">Marketplace</a>. You can wear up to <%= maxEquipped %> at once (<%= equippedList.length %>/<%= maxEquipped %>).</p>
+        <% if (slotsFull) { %><p class="error">All <%= maxEquipped %> slots are used - take something off first.</p><% } %>
+
+        <% if (owned.length === 0) { %>
+          <p class="empty-state">No costumes yet - go grab one from the Marketplace.</p>
+        <% } else { %>
+          <ul class="inventory-list">
+            <% owned.forEach(function (costume) { %>
+              <li class="inventory-item">
+                <img class="inventory-item__icon" src="/marketplace/icon/<%= costume.id %>" alt="<%= costume.name %>">
+                <span class="inventory-item__name"><%= costume.name %></span>
+                <% if (equippedList.some(function (c) { return c.id === costume.id; })) { %>
+                  <span class="badge badge--equipped">Equipped</span>
+                  <form method="post" action="/marketplace/unequip/<%= costume.id %>">
+                    <input type="hidden" name="from" value="avatar">
+                    <button type="submit" class="play-btn play-btn--secondary">Take off</button>
+                  </form>
+                <% } else { %>
+                  <form method="post" action="/marketplace/equip/<%= costume.id %>">
+                    <input type="hidden" name="from" value="avatar">
+                    <button type="submit" class="play-btn">Equip</button>
+                  </form>
+                <% } %>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+      </div>
+
+      <div class="avatar-panel avatar-panel--preview">
+        <h2>How you look</h2>
+        <div class="avatar-3d" id="avatar-preview" data-avatar3d
+             data-colors="<%= JSON.stringify(equippedCostume ? equippedCostume.colors : (user.colors || {})) %>"
+             data-hat="<%= JSON.stringify(equippedCostume && equippedCostume.hat ? equippedCostume.hat : null) %>"
+             data-shirt="<%= equippedCostume && equippedCostume.shirt ? equippedCostume.shirt.url : '' %>">
+          <%- avatarSvg(equippedCostume ? equippedCostume.colors : user.colors, 180) %>
+        </div>
+        <p class="hint avatar-3d__hint">Drag to rotate</p>
+        <p class="avatar-preview__name<%= (user.superUntil && user.superUntil > Date.now()) ? ' nick-super' : '' %>"><%= user.username %></p>
+
+        <form class="avatar-colors" id="avatar-colors" method="post" action="/avatar/colors">
+          <h3>My colors</h3>
+          <p class="hint">Pick any color for each body part. Saving your colors costs <b><span class="coin-icon">$</span> <%= colorPrice %> Coins</b>.</p>
+          <div class="avatar-colors__grid">
+            <% [['head','Head'],['torso','Torso'],['arms','Arms'],['legs','Legs']].forEach(function (p) { %>
+              <label class="avatar-colors__field"><span><%= p[1] %></span>
+                <input type="color" name="<%= p[0] %>" value="<%= (user.colors && user.colors[p[0]]) || defaultColors[p[0]] %>" data-saved="<%= (user.colors && user.colors[p[0]]) || defaultColors[p[0]] %>">
+              </label>
+            <% }); %>
+          </div>
+          <div class="avatar-colors__actions">
+            <button type="submit" class="play-btn" id="avatar-colors-save" disabled>Save colors - <%= colorPrice %> Coins</button>
+            <button type="button" class="play-btn play-btn--secondary" id="avatar-colors-undo" disabled>Undo</button>
+          </div>
+          <% if (colorStatus === 'saved') { %>
+            <p class="hint avatar-colors__msg ok">Colors saved! You have <%= user.coins %> Coins left.</p>
+          <% } else if (colorStatus === 'not_enough_coins') { %>
+            <p class="hint avatar-colors__msg err">Not enough Coins - you need <%= colorPrice %>, you have <%= user.coins %>.</p>
+          <% } else { %>
+            <p class="hint avatar-colors__msg" id="avatar-colors-msg">You have <%= user.coins %> Coins.</p>
+          <% } %>
+        </form>
+        <% if (equippedList.length) { %>
+          <form method="post" action="/marketplace/unequip">
+            <input type="hidden" name="from" value="avatar">
+            <button type="submit" class="play-btn play-btn--secondary">Take everything off</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/avatar3d.js?v=<%= Date.now() %>"></script>
+  <script type="module">
+    // Live preview of the colors while picking (free) - saving costs Coins.
+    const form = document.getElementById("avatar-colors");
+    const stage = document.getElementById("avatar-preview");
+    const save = document.getElementById("avatar-colors-save");
+    const undo = document.getElementById("avatar-colors-undo");
+    const inputs = [...form.querySelectorAll("input[type=color]")];
+    function current() { return Object.fromEntries(inputs.map((i) => [i.name, i.value])); }
+    function dirty() { return inputs.some((i) => i.value.toLowerCase() !== i.dataset.saved.toLowerCase()); }
+    function refresh() {
+      save.disabled = undo.disabled = !dirty();
+      const api = stage.__avatar3d;
+      if (api) {
+        let hat = null;
+        try { hat = JSON.parse(stage.dataset.hat || "null"); } catch (e) {}
+        api.setLook(current(), hat, stage.dataset.shirt || "");
+      }
+      const msg = document.getElementById("avatar-colors-msg");
+      if (msg && dirty()) msg.textContent = "Preview only - save to keep these colors.";
+    }
+    form.addEventListener("input", refresh);
+    undo.addEventListener("click", () => {
+      inputs.forEach((i) => { i.value = i.dataset.saved; });
+      refresh();
+    });
+  </script>
+</body>
+</html>

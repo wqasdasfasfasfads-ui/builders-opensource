@@ -1,0 +1,20 @@
+{
+  "name": "builders",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Builders - a small community gaming platform: avatar, marketplace, forum and games.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test-mail": "node test-mail.js",
+    "setup": "node setup.js",
+    "reset": "node reset-data.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.19.0",
+    "nodemailer": "^6.9.14"
+  }
+}

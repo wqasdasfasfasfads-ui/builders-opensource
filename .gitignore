@@ -1,0 +1,10 @@
+node_modules/
+.env
+data/users.json
+data/forum.json
+data/games.json
+data/game_sessions.json
+data/avatars/*
+!data/avatars/.gitkeep
+*.log
+.DS_Store

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Places - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Places</h1>
+
+    <section class="card-grid card-grid--row">
+      <% places.forEach(function (place) { %>
+        <article class="item-card">
+          <h3><%= place.name %></h3>
+          <p><%= place.description %></p>
+          <a class="play-btn" href="builders://place?id=<%= encodeURIComponent(place.id) %>">Open in Builders</a>
+          <p class="hint">
+            Share link:
+            <code>builders://place?id=<%= place.id %></code>
+          </p>
+        </article>
+      <% }); %>
+      <% if (places.length === 0) { %>
+        <p class="empty-state">No places yet. Add one in the <code>places/</code> folder.</p>
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>

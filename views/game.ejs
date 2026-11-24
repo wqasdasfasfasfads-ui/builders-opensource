@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= game.name %> - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <article class="game-page">
+      <div class="game-page__hero">
+        <% if (game.iconFile) { %>
+          <img class="game-page__icon" alt="<%= game.name %>"
+               src="/games/icon/<%= encodeURIComponent(game.id) %>"
+               onerror="this.remove()">
+        <% } %>
+        <div class="game-page__head">
+          <h1><%= game.name %></h1>
+          <% if (game.author) { %>
+            <p class="game-page__author">Created by <strong><%= game.author %></strong></p>
+          <% } %>
+          <button class="play-btn" id="game-play-btn" data-game-id="<%= game.id %>">Play</button>
+          <p class="hint" id="play-status"></p>
+        </div>
+      </div>
+
+      <div class="vote-bar">
+        <form method="post" action="/games/<%= encodeURIComponent(game.id) %>/vote">
+          <input type="hidden" name="vote" value="like">
+          <button type="submit" class="vote-btn <%= votes.userVote === 'like' ? 'vote-btn--active' : '' %>">
+            👍 <span><%= votes.likes %></span>
+          </button>
+        </form>
+        <form method="post" action="/games/<%= encodeURIComponent(game.id) %>/vote">
+          <input type="hidden" name="vote" value="dislike">
+          <button type="submit" class="vote-btn <%= votes.userVote === 'dislike' ? 'vote-btn--active' : '' %>">
+            👎 <span><%= votes.dislikes %></span>
+          </button>
+        </form>
+      </div>
+
+      <h2>Description</h2>
+      <% if (game.description) { %>
+        <p class="game-page__description"><%= game.description %></p>
+      <% } else { %>
+        <p class="hint">No description yet.</p>
+      <% } %>
+
+      <p><a href="/games">&larr; Back to games</a></p>
+    </article>
+  </main>
+
+  <%- include('partials/server-picker') %>
+
+  <script>
+    // Same launch flow as the Games page: one-time login code, then a
+    // builders:// link with a random room code.
+    function makeRoomCode() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    document.getElementById('game-play-btn').addEventListener('click', async function () {
+      const btn = this;
+      const status = document.getElementById('play-status');
+      btn.disabled = true;
+      status.textContent = '';
+      try {
+        const room = await chooseServer(btn.dataset.gameId);
+        if (!room) { btn.disabled = false; return; }
+        const res = await fetch('/api/create-login-code', { method: 'POST' });
+        const data = await res.json();
+        if (!data.ok) throw new Error('no code');
+        const url = `builders://play?code=${encodeURIComponent(data.code)}&game=${encodeURIComponent(btn.dataset.gameId)}&room=${encodeURIComponent(room)}&site=${encodeURIComponent(window.location.origin)}`;
+        window.location.href = url;
+        status.textContent = "opening games may take some times but games like box industry may take more then 10 minuts";
+      } catch (err) {
+        status.textContent = "Couldn't reach the server. Please try again.";
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

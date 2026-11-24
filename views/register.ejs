@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign up - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page page--auth">
+    <div class="auth-card">
+      <h1>Sign up</h1>
+      <p class="page-subtitle">Create an account to play Builders.</p>
+      <% if (error) { %><p class="error"><%= error %></p><% } %>
+      <form method="post" action="/register">
+        <label>Nickname (3-20 characters)
+          <input type="text" name="username" required minlength="3" maxlength="20" autofocus value="<%= typeof form !== 'undefined' && form ? form.username : '' %>">
+        </label>
+        <label>Email
+          <input type="email" name="email" required maxlength="120" value="<%= typeof form !== 'undefined' && form ? form.email : '' %>" autocomplete="email">
+        </label>
+        <label>Date of birth
+          <input type="date" name="birthDate" required min="1900-01-01" max="<%= new Date().toISOString().slice(0, 10) %>" value="<%= typeof form !== 'undefined' && form ? form.birthDate : '' %>">
+        </label>
+        <label>Password (min. 6 characters)
+          <input type="password" name="password" required minlength="6">
+        </label>
+        <button type="submit">Create account</button>
+      </form>
+      <p class="auth-card__switch">Already have an account? <a href="/login">Log in</a></p>
+      <p class="auth-card__legal">By creating an account you agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>, and to follow the <a href="/rules">Community Rules</a>.</p>
+    </div>
+  <%- include('partials/auth-footer') %>
+  </main>
+</body>
+</html>

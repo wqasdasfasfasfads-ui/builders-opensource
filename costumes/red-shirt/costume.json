@@ -1,0 +1,8 @@
+{
+  "name": "Red Shirt",
+  "description": "A plain red shirt.",
+  "price": 0,
+  "shirt": {
+    "texture": "shirt.png"
+  }
+}

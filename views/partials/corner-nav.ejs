@@ -1,0 +1,131 @@
+<nav class="topbar">
+  <div class="topbar__links">
+    <% if (user) { %>
+      <a href="/games" class="<%= active === 'games' ? 'is-active' : '' %>">Games</a>
+      <a href="/avatar" class="<%= active === 'avatar' ? 'is-active' : '' %>">Avatar</a>
+      <a href="/marketplace" class="<%= active === 'marketplace' ? 'is-active' : '' %>">Marketplace</a>
+      <a href="/forum" class="<%= active === 'forum' ? 'is-active' : '' %>">Forum</a>
+      <a href="/create" class="<%= active === 'create' ? 'is-active' : '' %>">Create</a>
+      <a href="/players" class="<%= active === 'players' ? 'is-active' : '' %>">Players</a>
+      <a href="/profile/<%= user.id %>" class="<%= active === 'profile' ? 'is-active' : '' %>">Profile</a>
+      <a href="/coins" class="<%= active === 'coins' ? 'is-active' : '' %>">Coins</a>
+      <% if (typeof roles !== 'undefined' && roles.admin) { %>
+        <a href="/admin" class="<%= active === 'admin' ? 'is-active' : '' %>">Admin</a>
+      <% } %>
+      <a href="/settings" class="<%= active === 'settings' ? 'is-active' : '' %>">Settings</a>
+    <% } else { %>
+      <a href="/" class="<%= active === 'home' ? 'is-active' : '' %>">Home</a>
+      <a href="/login" class="<%= active === 'login' ? 'is-active' : '' %>">Log in</a>
+      <a href="/register" class="<%= active === 'register' ? 'is-active' : '' %>">Sign up</a>
+    <% } %>
+  </div>
+</nav>
+
+<% if (typeof adLeft !== 'undefined' && adLeft) { %>
+  <div class="ad-banner ad-banner--left">
+    <img src="/ads/<%= adLeft %>" alt="Advertisement" onerror="this.closest('.ad-banner').remove()">
+  </div>
+<% } %>
+<% if (typeof adRight !== 'undefined' && adRight) { %>
+  <div class="ad-banner ad-banner--right">
+    <img src="/ads/<%= adRight %>" alt="Advertisement" onerror="this.closest('.ad-banner').remove()">
+  </div>
+<% } %>
+<% if (typeof dailyBonusMessage !== 'undefined' && dailyBonusMessage) { %>
+  <div class="daily-bonus-toast" id="daily-bonus-toast"><span class="coin-icon">$</span> <%= dailyBonusMessage %></div>
+  <script>
+    setTimeout(function () {
+      const t = document.getElementById('daily-bonus-toast');
+      if (t) t.classList.add('daily-bonus-toast--hide');
+    }, 4000);
+  </script>
+<% } %>
+
+<% if (user) { %><%- include('super-style') %><% } %>
+<% if (user) {
+  const superOn = !!(user.superUntil && user.superUntil > Date.now());
+  const SI = (typeof superInfo !== 'undefined' && superInfo) ? superInfo : { usd: '5.00', days: 30, coinPrice: 4000, coinDays: 7, dailyBonus: 100, discount: 10 };
+  const ppReady = (typeof paypalReady !== 'undefined') ? paypalReady : false;
+  const canCoins = user.coins >= SI.coinPrice;
+%>
+<% if (typeof superMessage !== 'undefined' && superMessage) { %>
+  <div class="daily-bonus-toast daily-bonus-toast--super" id="super-toast"><%= superMessage %></div>
+  <script>
+    setTimeout(function () {
+      var t = document.getElementById('super-toast');
+      if (t) t.classList.add('daily-bonus-toast--hide');
+    }, 6000);
+  </script>
+<% } %>
+<div class="super-modal" id="super-modal" hidden>
+  <div class="super-modal__box" role="dialog" aria-modal="true" aria-labelledby="super-title">
+    <button type="button" class="super-modal__close" id="super-close" aria-label="Close">&times;</button>
+
+    <div class="sup-top">
+      <div class="sup-stage-wrap">
+        <div class="sup-nametag nick-super">&#9889; <%= user.username %></div>
+        <div class="sup-stage" id="super-stage" data-avatar3d
+          data-colors="<%= JSON.stringify(user.colors || {}) %>"
+          data-hat="<%= JSON.stringify(superCape && superCape.hat ? superCape.hat : null) %>"></div>
+        <p class="sup-stage__hint">Mega Cape - drag to rotate</p>
+      </div>
+      <div class="sup-table">
+        <div class="sup-col sup-col--free">
+          <div class="sup-head">Free</div>
+          <div class="sup-row sup-row--on"><span class="sup-ico sup-ico--yes">&#10003;</span><span>20 Coins per day</span></div>
+          <div class="sup-row"><span class="sup-ico sup-ico--no">&#10005;</span><span>Golden Nickname</span></div>
+          <div class="sup-row"><span class="sup-ico sup-ico--no">&#10005;</span><span>Unlock Mega Cape</span></div>
+          <div class="sup-row"><span class="sup-ico sup-ico--no">&#10005;</span><span>-<%= SI.discount %>% on all items</span></div>
+        </div>
+        <div class="sup-col sup-col--super">
+          <div class="sup-head sup-head--super"><svg class="sup-bolt-sm" viewBox="0 0 64 80" aria-hidden="true"><path d="M40 2 L8 44 H28 L20 78 L58 30 H36 Z" fill="#fff"/></svg> <span id="super-title">Pluse</span></div>
+          <div class="sup-row sup-row--on"><span class="sup-ico sup-ico--yes">&#10003;</span><span><%= SI.dailyBonus %> Coins per day</span></div>
+          <div class="sup-row sup-row--on"><span class="sup-ico sup-ico--yes">&#10003;</span><span class="nick-super">Golden Nickname</span></div>
+          <div class="sup-row sup-row--on"><span class="sup-ico sup-ico--yes">&#10003;</span><span>Unlock Mega Cape</span></div>
+          <div class="sup-row sup-row--on"><span class="sup-ico sup-ico--yes">&#10003;</span><span>-<%= SI.discount %>% on all items</span></div>
+        </div>
+      </div>
+    </div>
+
+    <% if (superOn) { %>
+      <p class="super-status">&#9889; Pluse is active until <%= fmtDate(user.superUntil) %></p>
+    <% } %>
+
+    <form method="post" action="/super/buy-paypal" class="sup-buy-form">
+      <button type="submit" class="sup-buy" <%= ppReady ? '' : 'disabled' %>>
+        <span class="sup-buy__text">GET <%= SI.days %> DAYS FOR $<%= SI.usd %></span>
+        <svg class="sup-bolt" viewBox="0 0 64 80" aria-hidden="true"><path d="M40 2 L8 44 H28 L20 78 L58 30 H36 Z" fill="#ffb81c" stroke="#fff3c4" stroke-width="3" stroke-linejoin="round"/></svg>
+      </button>
+    </form>
+    <form method="post" action="/super/buy-coins" class="sup-buy-form">
+      <button type="submit" class="sup-buy sup-buy--coins" <%= canCoins ? '' : 'disabled' %>>
+        <span class="sup-buy__text">GET <%= SI.coinDays %> DAYS FOR <%= SI.coinPrice %> COINS</span>
+        <svg class="sup-bolt" viewBox="0 0 64 80" aria-hidden="true"><path d="M40 2 L8 44 H28 L20 78 L58 30 H36 Z" fill="#ffb81c" stroke="#fff3c4" stroke-width="3" stroke-linejoin="round"/></svg>
+      </button>
+    </form>
+    <% if (!canCoins) { %><p class="super-note">You have <%= user.coins %> Coins - you need <%= SI.coinPrice %>.</p><% } %>
+    <% if (!ppReady) { %><p class="super-note">PayPal is not set up yet.</p><% } %>
+    <p class="super-note">Pluse does not renew by itself. Buying again while Pluse is active adds more days.</p>
+  </div>
+</div>
+<script type="module" src="/avatar3d.js?v=<%= Date.now() %>"></script>
+<script>
+  // The Pluse button lives in the page (after this partial), so listen on the
+  // whole document instead of looking the button up right now.
+  (function () {
+    var modal = document.getElementById('super-modal');
+    if (!modal) return;
+    function hide() { modal.hidden = true; }
+    document.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('#super-open')) {
+        modal.hidden = false;
+        var st = document.getElementById('super-stage');
+        if (st && st.__avatar3d) st.__avatar3d.rotateTo(2.7); // start from the back so the cape is visible
+        return;
+      }
+      if (e.target === modal || (e.target.closest && e.target.closest('#super-close'))) hide();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+  })();
+</script>
+<% } %>

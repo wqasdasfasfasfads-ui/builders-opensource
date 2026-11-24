@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page page--auth">
+    <div class="auth-card">
+      <h1>Log in</h1>
+      <p class="page-subtitle">Good to see you again.</p>
+      <% if (error) { %><p class="error"><%= error %></p><% } %>
+      <form method="post" action="/login">
+        <label>Nickname
+          <input type="text" name="username" required autofocus>
+        </label>
+        <label>Password
+          <input type="password" name="password" required>
+        </label>
+        <button type="submit">Log in</button>
+      </form>
+      <p class="auth-card__switch">Don't have an account? <a href="/register">Sign up</a></p>
+    </div>
+  <%- include('partials/auth-footer') %>
+  </main>
+</body>
+</html>

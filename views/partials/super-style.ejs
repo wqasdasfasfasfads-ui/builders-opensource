@@ -1,0 +1,115 @@
+<style>
+/* ---------------------------------------------------------------------- */
+/* Pluse subscription: Marketplace button, comparison GUI, golden nick    */
+/* ---------------------------------------------------------------------- */
+
+.nick-super { color: #ffc400 !important; font-weight: 800; text-shadow: 0 0 6px rgba(255, 196, 0, .45), 0 1px 0 rgba(120, 80, 0, .5); }
+.profile-card__nick.nick-super, .avatar-preview__name.nick-super { color: #e0a800 !important; }
+
+.super-open-btn {
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 800; cursor: pointer;
+  color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  background: linear-gradient(180deg, #ffc21a, #ffa800); border: 0; border-radius: 8px; padding: 0.55rem 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.super-open-btn:hover { filter: brightness(1.07); }
+.super-open-btn--on { box-shadow: 0 0 0 2px #fff, 0 0 12px rgba(255,196,0,.9); }
+.sup-bolt-sm { width: 16px; height: 20px; fill: #fff; }
+
+.daily-bonus-toast--super { background: #b07a00; top: 8.2rem; max-width: 22rem; }
+
+.super-modal { position: fixed; inset: 0; z-index: 1100; background: rgba(8, 10, 16, .75); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+.super-modal[hidden] { display: none; }
+.super-modal__box { position: relative; background: #2f3a5a; color: #fff; padding: 16px 16px 14px; width: min(700px, 100%); max-height: 100%; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,.55); font-weight: 700; }
+.super-modal__close { position: absolute; top: 2px; right: 8px; background: none; border: 0; color: #9fa8c4; font-size: 26px; line-height: 1; cursor: pointer; z-index: 2; }
+
+.sup-table { display: grid; grid-template-columns: 1fr 1fr; align-items: start; margin-top: 14px; }
+.sup-col { display: flex; flex-direction: column; }
+.sup-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-size: 1.35rem; font-weight: 800; text-shadow: 0 2px 2px rgba(0,0,0,.35); }
+.sup-col--free .sup-head { background: #5f6370; }
+.sup-head--super { background: linear-gradient(90deg, #ffa800, #ffcf4a); margin-top: -12px; padding-top: 16px; }
+.sup-col--super { padding-bottom: 36px; background: #9a9fb0; }
+.sup-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; font-size: 1.05rem; border-bottom: 2px solid #2f3a5a; text-shadow: 0 1px 2px rgba(0,0,0,.3); background: #4d5470; color: #8a90a6; }
+.sup-row--on { background: #9a9fb0; color: #fff; }
+.sup-col--free .sup-row:last-child { margin-bottom: 36px; }
+.sup-ico { font-size: 1.2rem; width: 1.2em; text-align: center; text-shadow: none; }
+.sup-ico--yes { color: #2ecc71; }
+.sup-ico--no { color: #8a90a6; }
+
+.super-status { margin: 14px 0 0; text-align: center; color: #ffc400; }
+
+.sup-buy-form { margin: 14px 0 0; }
+.sup-buy { position: relative; display: block; width: 100%; text-align: left; border: 0; cursor: pointer; font: inherit; padding: 20px 80px 20px 20px; background: #ffb81c; color: #fff; overflow: visible; }
+.sup-buy__text { font-size: 1.15rem; font-weight: 900; text-transform: uppercase; text-shadow: 0 2px 2px rgba(0,0,0,.4); letter-spacing: .01em; }
+.sup-buy:hover { filter: brightness(1.06); }
+.sup-buy[disabled] { opacity: .5; cursor: not-allowed; filter: none; }
+.sup-buy--coins { background: #e89a00; }
+.sup-bolt { position: absolute; right: 10px; top: 50%; width: 52px; height: 64px; transform: translateY(-50%) rotate(8deg); filter: drop-shadow(0 3px 3px rgba(0,0,0,.3)); pointer-events: none; }
+.super-note { margin: 10px 0 0; text-align: center; color: #9fa8c4; font-size: .78rem; font-weight: 600; }
+
+@media (max-width: 560px) {
+  .sup-head { font-size: 1.1rem; }
+  .sup-row { font-size: .9rem; padding: 9px 8px; gap: 6px; }
+  .sup-buy { padding-right: 70px; }
+  .sup-buy__text { font-size: .95rem; }
+}
+
+/* thin version of the Pluse window */
+.super-modal__box { width: min(430px, 100%); padding: 10px 10px 8px; }
+.super-modal__box .sup-table { margin-top: 10px; }
+.sup-head { padding: 8px 10px; font-size: 1.05rem; }
+.sup-head--super { margin-top: -8px; padding-top: 11px; }
+.sup-row { padding: 6px 10px; font-size: .88rem; gap: 8px; }
+.sup-ico { font-size: 1rem; }
+.sup-col--free .sup-row:last-child { margin-bottom: 22px; }
+.sup-col--super { padding-bottom: 22px; }
+.sup-buy-form { margin-top: 8px; }
+.sup-buy { padding: 12px 56px 12px 12px; }
+.sup-buy__text { font-size: .9rem; }
+.sup-bolt { width: 36px; height: 46px; right: 8px; }
+.super-note { margin-top: 6px; font-size: .72rem; }
+.super-status { margin-top: 8px; font-size: .85rem; }
+
+/* Pluse window: character preview (left) + comparison (right) */
+.super-modal__box { width: min(660px, 100%); }
+.sup-top { display: grid; grid-template-columns: 230px 1fr; gap: 12px; align-items: start; margin-top: 10px; }
+.sup-top .sup-table { margin-top: 0; }
+.sup-stage-wrap { position: relative; background: radial-gradient(ellipse at 50% 25%, #3a4560, #1c212c 75%); border: 1px solid #1a1f2a; }
+.sup-stage { width: 100%; height: 300px; }
+.sup-stage canvas { display: block; cursor: grab; }
+.sup-nametag { position: absolute; top: 9%; left: 50%; transform: translateX(-50%); z-index: 2; max-width: 92%; padding: 3px 10px; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: rgba(0,0,0,.35); border-radius: 6px; pointer-events: none; }
+.sup-stage__hint { margin: 0; padding: 4px 0 6px; text-align: center; font-size: .7rem; font-weight: 600; color: #9fa8c4; }
+@media (max-width: 620px) {
+  .sup-top { grid-template-columns: 1fr; }
+  .sup-stage { height: 240px; }
+}
+
+/* fixes: keep the table inside the window, full-width buy banners */
+.super-modal__box { padding-top: 26px; }
+.sup-top { grid-template-columns: 230px minmax(0, 1fr); }
+.sup-table { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-width: 0; }
+.sup-row { min-width: 0; }
+.sup-buy-form { max-width: none; width: 100%; }
+@media (max-width: 620px) { .sup-top { grid-template-columns: minmax(0, 1fr); } }
+
+/* v2: Pluse column lower (aligned), solid black backdrop, wider character, shorter buy buttons */
+.super-modal { background: #000; }
+.super-modal__box { width: min(740px, 100%); }
+.sup-top { grid-template-columns: 310px minmax(0, 1fr); }
+.sup-stage { height: 320px; }
+.sup-head--super { margin-top: 0; padding-top: 8px; }
+.sup-col--free .sup-row:last-child { margin-bottom: 0; }
+.sup-col--super { padding-bottom: 0; }
+.sup-buy-form { width: 100%; max-width: 360px; margin-left: auto; margin-right: auto; }
+@media (max-width: 620px) { .sup-top { grid-template-columns: minmax(0, 1fr); } .sup-stage { height: 260px; } }
+
+/* v3: taller comparison table, black window background */
+.super-modal__box { background: #000; }
+.sup-head { padding: 16px 12px; font-size: 1.15rem; }
+.sup-head--super { padding-top: 16px; }
+.sup-row { padding: 18px 12px; font-size: .95rem; border-bottom-color: #000; }
+.sup-ico { font-size: 1.1rem; }
+
+</style>
+
+

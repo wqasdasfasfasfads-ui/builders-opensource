@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page page--hero">
+    <h1>Welcome to Builders</h1>
+    <% if (user) { %>
+      <p>You're logged in as <b><%= user.username %></b>.</p>
+      <p><a href="/games">Go to Games →</a></p>
+    <% } else { %>
+      <p>
+        Welcome to Builders, let me tell u about it here, it is great platform for gaming and creating games change avatar, customize profile and much more, hop on and log in or create account we are waiting for u to have a great adventure (more other tuuf like terms or smt on your-domain.example/terms).
+      </p>
+      <p><a href="/register">Create an account</a> · <a href="/login">Log in</a></p>
+    <% } %>
+  </main>
+</body>
+</html>

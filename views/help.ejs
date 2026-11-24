@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Help - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user: user || null, active: null }) %>
+  <main class="page">
+    <article class="info-page">
+      <h1>Help</h1>
+
+      <h2>Report a problem</h2>
+      <% if (sent) { %>
+        <p class="success">Thank you! Your report was sent. We will get back to you by email.</p>
+      <% } else { %>
+        <p>Something went wrong? Fill in the form and we will receive it by email.</p>
+        <% if (error) { %><p class="error"><%= error %></p><% } %>
+        <form method="post" action="/help" class="help-form">
+          <label>Your email
+            <input type="email" name="email" required maxlength="120" value="<%= form.email %>" autocomplete="email">
+          </label>
+          <label>Your nickname
+            <input type="text" name="username" required maxlength="40" value="<%= form.username || (user ? user.username : '') %>">
+          </label>
+          <label>What happened?
+            <select name="topic" required>
+              <option value="" disabled <%= form.topic ? '' : 'selected' %>>Choose...</option>
+              <% topics.forEach(function (t) { %>
+                <option value="<%= t %>" <%= form.topic === t ? 'selected' : '' %>><%= t %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label>Description
+            <textarea name="description" required minlength="10" maxlength="3000" rows="7"><%= form.description %></textarea>
+          </label>
+          <button type="submit">Send report</button>
+        </form>
+      <% } %>
+
+      <% faq.forEach(function (s) { %>
+        <h2><%= s.heading %></h2>
+        <% s.paragraphs.forEach(function (p) { %><p><%= p %></p><% }); %>
+      <% }); %>
+      <p><a href="/">&larr; Back to home</a></p>
+    </article>
+  </main>
+</body>
+</html>

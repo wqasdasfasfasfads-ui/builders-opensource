@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Players - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Players</h1>
+    <p class="page-subtitle">Click a player's picture to open their profile.</p>
+
+    <ul class="players-list">
+      <% players.forEach(function (p) { %>
+        <li class="player-row">
+          <a href="/profile/<%= p.id %>" class="player-row__avatar" title="Open profile"><%- avatarHtml(p, 48) %></a>
+          <div class="player-row__info">
+            <a href="/profile/<%= p.id %>" class="player-row__name<%= p.isSuper ? ' nick-super' : '' %>"><%= p.username %><% if (p.emoji) { %> <span class="nick-emoji"><%= p.emoji %></span><% } %><% if (p.id === user.id) { %> <span class="badge">You</span><% } %></a>
+            <% if (p.description) { %>
+              <span class="player-row__desc"><%= p.description.length > 90 ? p.description.slice(0, 90) + '...' : p.description %></span>
+            <% } %>
+          </div>
+          <% if (p.online && p.game_id) { %>
+            <span class="friend-row__status friend-row__status--on">🟢 playing <%= p.game_id %></span>
+          <% } else { %>
+            <span class="friend-row__status">⚪ offline</span>
+          <% } %>
+        </li>
+      <% }); %>
+    </ul>
+  </main>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Redeem a code - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Redeem a code</h1>
+    <p>Have a code? Type it here to get coins or an item.</p>
+
+    <% if (result) { %>
+      <p class="<%= result.type === 'error' ? 'error' : 'success' %>"><%= result.text %></p>
+    <% } %>
+
+    <form method="post" action="/readem" class="readem-form" autocomplete="off">
+      <input type="text" name="code" placeholder="Enter code" required maxlength="60" autofocus spellcheck="false" autocapitalize="off">
+      <button type="submit">Redeem</button>
+    </form>
+  </main>
+</body>
+</html>

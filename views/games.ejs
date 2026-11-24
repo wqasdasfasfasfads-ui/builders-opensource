@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Home - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <% if (events && events.length) { %>
+      <section class="events-strip">
+        <% events.forEach(function (ev) { %>
+          <a class="event-card" href="<%= ev.url %>" target="_blank" rel="noopener noreferrer" title="<%= ev.name %>">
+            <img src="/events/img/<%= encodeURIComponent(ev.id) %>" alt="<%= ev.name %>">
+          </a>
+        <% }); %>
+      </section>
+    <% } %>
+
+    <section class="friends-panel">
+      <div id="friends-list">
+        <% friends.forEach(function (f) { %>
+          <div class="friend-row" data-friend-id="<%= f.id %>">
+            <span class="friend-row__avatar"><%- avatarHtml(f, 32) %></span>
+            <span class="friend-row__name<%= f.isSuper ? ' nick-super' : '' %>"><%= f.username %><% if (f.emoji) { %> <%= f.emoji %><% } %></span>
+            <% if (f.online && f.game_id) { %>
+              <span class="friend-row__status friend-row__status--on">🟢 playing <%= f.game_id %></span>
+              <button class="join-btn" data-game-id="<%= f.game_id %>" data-room="<%= f.room %>">Join</button>
+            <% } else { %>
+              <span class="friend-row__status">⚪ offline</span>
+            <% } %>
+            <form action="/friends/remove" method="post" class="friend-remove">
+              <input type="hidden" name="friendId" value="<%= f.id %>">
+              <button type="submit" title="Remove friend">✕</button>
+            </form>
+          </div>
+        <% }); %>
+      </div>
+    </section>
+
+    <section class="card-grid card-grid--row card-grid--full" id="games-grid">
+      <% games.forEach(function (game) { %>
+        <article class="item-card">
+          <a class="item-card__head item-card__head--link" href="/games/<%= encodeURIComponent(game.id) %>" title="Open <%= game.name %>'s page">
+            <% if (game.iconFile) { %>
+              <img class="item-icon" alt="<%= game.name %>"
+                   src="/games/icon/<%= encodeURIComponent(game.id) %>"
+                   onerror="this.remove()">
+            <% } %>
+            <h3><%= game.name %></h3>
+          </a>
+          <% if (game.author) { %><p class="item-card__author">by <%= game.author %></p><% } %>
+          <p><%= game.description %></p>
+          <div class="item-card__foot">
+            <button class="play-btn" data-game-id="<%= game.id %>">Play</button>
+            <span class="vote-counts" title="Likes / dislikes">👍 <%= game.votes.likes %> · 👎 <%= game.votes.dislikes %></span>
+          </div>
+        </article>
+      <% }); %>
+      <% if (games.length === 0) { %>
+        <p class="empty-state" id="no-games-msg">No games yet.</p>
+      <% } %>
+    </section>
+    <p class="hint" id="play-status"></p>
+
+    <p class="hint"> Dont know how play? Head over to install <a href="https://fabric.so/i/2HPLxVdCuZO4IXCbLdeokq?expandedFdocId=518f1747-4875-47ed-a8be-c63421f2fdf9">installer (idk why but virustotal saying there are trojan)</a>.</p>
+  </main>
+
+  <%- include('partials/server-picker') %>
+
+  <script>
+    // Play/Join: no one-time code any more. The game logs in by itself with the
+    // player's account (typed once in the game, then remembered):
+    //   builders://play?game=1&room=S3&site=https%3A%2F%2Fyour-domain.example
+    // Play  -> the server picked in the server list (S1..S5).
+    // Join  -> the friend's server, so you land in your friend's world.
+    async function startGame(gameId, room) {
+      // site = the address this page is opened on, so the game always knows
+      // which server to log in to - no hardcoded URL.
+      const url = `builders://play?game=${encodeURIComponent(gameId)}&room=${encodeURIComponent(room)}&site=${encodeURIComponent(window.location.origin)}`;
+      window.location.href = url;
+    }
+
+    function wirePlayButton(btn) {
+      btn.addEventListener('click', async function () {
+        const status = document.getElementById('play-status');
+        btn.disabled = true;
+        status.textContent = '';
+        try {
+          const room = await chooseServer(btn.dataset.gameId);
+          if (!room) { btn.disabled = false; return; }
+          await startGame(btn.dataset.gameId, room);
+          status.textContent = "opening games may take some times but games like box industry may take more then 10 minuts";
+        } catch (err) {
+          status.textContent = "Couldn't reach the server. Please try again.";
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    }
+
+    function wireJoinButton(btn) {
+      btn.addEventListener('click', async function () {
+        const status = document.getElementById('play-status');
+        btn.disabled = true;
+        status.textContent = '';
+        try {
+          await startGame(btn.dataset.gameId, btn.dataset.room);
+          status.textContent = "Joining your friend...";
+        } catch (err) {
+          status.textContent = "Couldn't reach the server. Please try again.";
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    }
+
+    // Wire the server-rendered buttons right away.
+    document.querySelectorAll('.play-btn').forEach(wirePlayButton);
+    document.querySelectorAll('.join-btn').forEach(wireJoinButton);
+
+    // Live friends refresh: statuses + Join buttons update every 15s.
+    function refreshFriends() {
+      fetch('/api/friends').then(function (r) { return r.json(); }).then(function (data) {
+        if (!data.ok) return;
+        const list = document.getElementById('friends-list');
+        if (!list) return;
+        list.innerHTML = '';
+        if (!data.friends.length) {
+          return;
+        }
+        data.friends.forEach(function (f) {
+          const row = document.createElement('div');
+          row.className = 'friend-row';
+          row.dataset.friendId = f.id;
+
+          const av = document.createElement('span');
+          av.className = 'friend-row__avatar';
+          av.innerHTML = f.avatar_html || '';
+          row.appendChild(av);
+
+          const name = document.createElement('span');
+          name.className = 'friend-row__name' + (f.isSuper ? ' nick-super' : '');
+          name.textContent = f.username + (f.emoji ? ' ' + f.emoji : '');
+          row.appendChild(name);
+
+          if (f.online && f.game_id) {
+            const st = document.createElement('span');
+            st.className = 'friend-row__status friend-row__status--on';
+            st.textContent = '🟢 playing ' + f.game_id;
+            row.appendChild(st);
+            const join = document.createElement('button');
+            join.className = 'join-btn';
+            join.dataset.gameId = f.game_id;
+            join.dataset.room = f.room;
+            join.textContent = 'Join';
+            row.appendChild(join);
+          } else {
+            const st = document.createElement('span');
+            st.className = 'friend-row__status';
+            st.textContent = '⚪ offline';
+            row.appendChild(st);
+          }
+
+          const rm = document.createElement('form');
+          rm.action = '/friends/remove';
+          rm.method = 'post';
+          rm.className = 'friend-remove';
+          rm.innerHTML = '<input type="hidden" name="friendId" value="' + f.id + '">' +
+                         '<button type="submit" title="Remove friend">✕</button>';
+          row.appendChild(rm);
+
+          list.appendChild(row);
+        });
+        list.querySelectorAll('.join-btn').forEach(wireJoinButton);
+      }).catch(function () {});
+    }
+    setInterval(refreshFriends, 15000);
+
+    // EXTRA games that exist only on THIS pc (games_map.json / games folder
+    // next to builders_launcher.py). Optional - if the launcher API is not
+    // reachable, the page simply keeps showing the website's own games.
+    (async function loadLauncherGames() {
+      let data;
+      try {
+        const res = await fetch('http://127.0.0.1:8791/games', { signal: AbortSignal.timeout(3000) });
+        data = await res.json();
+      } catch (err) {
+        return; // launcher not running - nothing to add, page already works
+      }
+      const grid = document.getElementById('games-grid');
+      const known = new Set(Array.from(grid.querySelectorAll('.play-btn')).map(b => b.dataset.gameId));
+      (data.games || []).filter(x => x.available).forEach(function (game) {
+        if (known.has(game.id)) return;
+        const card = document.createElement('article');
+        card.className = 'item-card';
+        const head = document.createElement('div');
+        head.className = 'item-card__head';
+        // icon = the game's .png sitting next to its .exe on the files
+        // host (game.exe + game.png); hidden if the png doesn't exist
+        if (game.files_url) {
+          const icon = document.createElement('img');
+          icon.className = 'item-icon';
+          icon.alt = '';
+          icon.src = game.files_url.replace(/\.(exe|jrna)$/i, '.png');
+          icon.onerror = function () { icon.remove(); };
+          head.appendChild(icon);
+        }
+        const title = document.createElement('h3');
+        title.textContent = game.name;
+        head.appendChild(title);
+        card.appendChild(head);
+        const btn = document.createElement('button');
+        btn.className = 'play-btn';
+        btn.dataset.gameId = game.id;
+        btn.textContent = 'Play';
+        card.appendChild(btn);
+        grid.appendChild(card);
+        wirePlayButton(btn);
+      });
+      const emptyMsg = document.getElementById('no-games-msg');
+      if (emptyMsg && grid.querySelector('.play-btn')) emptyMsg.remove();
+    })();
+  </script>
+</body>
+</html>

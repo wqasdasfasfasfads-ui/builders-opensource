@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Settings</h1>
+
+    <section>
+      <h2>Nickname</h2>
+      <% if (profileError) { %><p class="error"><%= profileError %></p><% } %>
+      <% if (profileSuccess) { %><p class="success"><%= profileSuccess %></p><% } %>
+      <form method="post" action="/settings/profile">
+        <label>New nickname (3-20 characters)
+          <input type="text" name="username" value="<%= user.username %>" required minlength="3" maxlength="20">
+        </label>
+        <button type="submit">Update nickname</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Profile icon</h2>
+      <% if (query.saved === 'icon-removed') { %><p class="success">Icon removed.</p><% } %>
+      <% if (query.saved === 'icon') { %><p class="success">Icon saved.</p><% } %>
+      <p>Pick any picture - it's shown in the top bar, in the players list and on your profile.</p>
+      <div class="icon-setter">
+        <span class="icon-setter__preview" id="icon-preview"><%- avatarHtml(user, 96) %></span>
+        <div class="icon-setter__controls">
+          <input type="file" id="icon-file" accept="image/png,image/jpeg,image/webp,image/gif">
+          <div class="icon-setter__buttons">
+            <button type="button" id="icon-save" disabled>Save icon</button>
+            <% if (user.hasAvatar) { %>
+              <form method="post" action="/settings/avatar/remove" class="inline-form">
+                <button type="submit" class="play-btn--secondary">Remove icon</button>
+              </form>
+            <% } %>
+          </div>
+          <p id="icon-status" class="hint"></p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>About me</h2>
+      <% if (query.saved === 'description') { %><p class="success">Description saved.</p><% } %>
+      <form method="post" action="/settings/description">
+        <label>Shown on your profile (up to 300 characters)
+          <textarea name="description" rows="4" maxlength="300"><%= user.description %></textarea>
+        </label>
+        <button type="submit">Save description</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Emoji next to nickname</h2>
+      <% if (query.saved === 'emoji') { %><p class="success">Emoji saved.</p><% } %>
+      <% if (query.saved === 'emoji-bad') { %><p class="error">That emoji isn't in the list.</p><% } %>
+      <p>Shown next to your nickname: <strong><%= user.username %><% if (user.emoji) { %> <span class="nick-emoji"><%= user.emoji %></span><% } %></strong></p>
+      <form method="post" action="/settings/emoji">
+        <div class="emoji-grid" id="emoji-grid">
+          <button type="button" class="emoji-btn" data-emoji="" title="No emoji">✕</button>
+          <% emojiList.forEach(function (e) { %>
+            <button type="button" class="emoji-btn" data-emoji="<%= e %>"><%= e %></button>
+          <% }); %>
+        </div>
+        <p class="hint">You can only pick from this list. Your choice: <strong id="emoji-chosen"><%= user.emoji || 'none' %></strong></p>
+        <input type="hidden" name="emoji" id="emoji-input" value="<%= user.emoji %>">
+        <button type="submit">Save emoji</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Password</h2>
+      <% if (passwordError) { %><p class="error"><%= passwordError %></p><% } %>
+      <% if (passwordSuccess) { %><p class="success"><%= passwordSuccess %></p><% } %>
+      <form method="post" action="/settings/password">
+        <label>Current password
+          <input type="password" name="currentPassword" required>
+        </label>
+        <label>New password (min. 6 characters)
+          <input type="password" name="newPassword" required minlength="6">
+        </label>
+        <label>Confirm new password
+          <input type="password" name="confirmPassword" required minlength="6">
+        </label>
+        <button type="submit">Update password</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Log in to the game</h2>
+      <p>Click the button, get a code, and enter it in the game within 2 minutes.</p>
+      <button id="gen-code">Get a game login code</button>
+      <p id="code-box"></p>
+      <p id="code-timer"></p>
+    </section>
+  </main>
+
+  <script>
+    const btn = document.getElementById('gen-code');
+    const box = document.getElementById('code-box');
+    const timerEl = document.getElementById('code-timer');
+    let interval = null;
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/create-login-code', { method: 'POST' });
+        const data = await res.json();
+        if (!data.ok) {
+          box.textContent = 'Something went wrong. Please try again.';
+          return;
+        }
+        box.textContent = data.code;
+        let remaining = data.expires_in_seconds;
+        clearInterval(interval);
+        timerEl.textContent = `Valid for ${remaining}s.`;
+        interval = setInterval(() => {
+          remaining -= 1;
+          if (remaining > 0) {
+            timerEl.textContent = `Valid for ${remaining}s.`;
+          } else {
+            timerEl.textContent = 'Code expired, get a new one.';
+            clearInterval(interval);
+          }
+        }, 1000);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.querySelectorAll('.emoji-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.getElementById('emoji-input').value = b.dataset.emoji;
+        document.getElementById('emoji-chosen').textContent = b.dataset.emoji || 'none';
+      });
+    });
+
+    // ---- Profile icon: shrink the chosen picture to a square PNG in the
+    // browser, then send it to the server. ----
+    (function () {
+      const fileInput = document.getElementById('icon-file');
+      const saveBtn = document.getElementById('icon-save');
+      const status = document.getElementById('icon-status');
+      const preview = document.getElementById('icon-preview');
+      let pngDataUrl = null;
+
+      function toSquarePng(img, size) {
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        const ctx = c.getContext('2d');
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const sx = (img.naturalWidth - side) / 2;
+        const sy = (img.naturalHeight - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        return c.toDataURL('image/png');
+      }
+
+      fileInput.addEventListener('change', function () {
+        pngDataUrl = null;
+        saveBtn.disabled = true;
+        status.textContent = '';
+        const file = fileInput.files[0];
+        if (!file) return;
+        if (!/^image\//.test(file.type)) { status.textContent = 'Please choose an image file.'; return; }
+        const img = new Image();
+        img.onload = function () {
+          // 256px normally; smaller if the PNG is still too heavy (max ~500 KB)
+          const sizes = [256, 192, 128];
+          for (let i = 0; i < sizes.length; i++) {
+            const url = toSquarePng(img, sizes[i]);
+            if (url.length < 600000) { pngDataUrl = url; break; }
+          }
+          if (!pngDataUrl) { status.textContent = 'That picture is too detailed. Try another one.'; return; }
+          preview.innerHTML = '<img src="' + pngDataUrl + '" width="96" height="96" alt="" style="border-radius:50%;object-fit:cover;display:block">';
+          saveBtn.disabled = false;
+          status.textContent = 'Looks good? Press "Save icon".';
+          URL.revokeObjectURL(img.src);
+        };
+        img.onerror = function () { status.textContent = "Couldn't read that image."; };
+        img.src = URL.createObjectURL(file);
+      });
+
+      saveBtn.addEventListener('click', async function () {
+        if (!pngDataUrl) return;
+        saveBtn.disabled = true;
+        status.textContent = 'Saving...';
+        try {
+          const res = await fetch('/settings/avatar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: pngDataUrl }),
+          });
+          const data = await res.json();
+          if (data.ok) { location.href = '/settings?saved=icon'; return; }
+          status.textContent = data.error || 'Something went wrong.';
+        } catch (e) {
+          status.textContent = "Couldn't reach the server.";
+        }
+        saveBtn.disabled = false;
+      });
+    })();
+  </script>
+</body>
+</html>

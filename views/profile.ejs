@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= profile.username %> - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <section class="profile-card">
+      <div class="profile-card__top">
+        <h1 class="profile-card__nick<%= profile.isSuper ? ' nick-super' : '' %>"><%= profile.username %><% if (profile.emoji) { %> <span class="nick-emoji"><%= profile.emoji %></span><% } %></h1>
+        <span class="profile-card__avatar"><%- avatarHtml(profile, 140) %></span>
+      </div>
+
+      <p class="profile-card__status">
+        <% if (profile.online && profile.game_id) { %>
+          <span class="friend-row__status friend-row__status--on">🟢 playing <%= profile.game_id %></span>
+        <% } else { %>
+          <span class="friend-row__status">⚪ offline</span>
+        <% } %>
+      </p>
+
+      <div class="profile-card__about">
+        <h2>About</h2>
+        <% if (profile.description) { %>
+          <p class="profile-card__desc"><%= profile.description %></p>
+        <% } else { %>
+          <p class="empty-state"><%= isMe ? "You haven't written anything yet." : "This player hasn't written anything yet." %></p>
+        <% } %>
+      </div>
+
+
+      <p class="hint"><a href="/players">&larr; All players</a></p>
+    </section>
+  </main>
+</body>
+</html>

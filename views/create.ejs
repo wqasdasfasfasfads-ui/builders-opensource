@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Create</h1>
+
+    <form id="create-form" class="create-form" autocomplete="off">
+      <label>Game name
+        <input type="text" id="game-name" required minlength="2" maxlength="60">
+      </label>
+      <label>Description (optional)
+        <textarea id="game-desc" rows="3" maxlength="500"></textarea>
+      </label>
+      <label>Game file (.jrna)
+        <input type="file" id="game-exe" accept=".jrna" required>
+      </label>
+      <label>Photo (PNG, JPG, WEBP or GIF, up to 5 MB)
+        <input type="file" id="game-photo" accept="image/png,image/jpeg,image/webp,image/gif" required>
+      </label>
+      <button type="submit" id="create-btn">Create</button>
+      <progress id="create-progress" value="0" max="100" hidden></progress>
+      <p id="create-status" class="hint"></p>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById('create-form');
+    const btn = document.getElementById('create-btn');
+    const bar = document.getElementById('create-progress');
+    const status = document.getElementById('create-status');
+
+    function setStatus(text, cls) {
+      status.textContent = text;
+      status.className = cls || 'hint';
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const exe = document.getElementById('game-exe').files[0];
+      const photo = document.getElementById('game-photo').files[0];
+      const name = document.getElementById('game-name').value.trim();
+      const desc = document.getElementById('game-desc').value.trim();
+
+      if (!exe || !/\.jrna$/i.test(exe.name)) return setStatus('Choose a .jrna file.', 'error');
+      if (!photo) return setStatus('Choose a photo.', 'error');
+      if (photo.size > 5 * 1024 * 1024) return setStatus('The photo is bigger than 5 MB.', 'error');
+      if (exe.size > 1024 * 1024 * 1024) return setStatus('The .jrna is bigger than 1 GB.', 'error');
+
+      // The file is sent in small pieces (proxies can refuse a
+      // single request over 100 MB): begin -> photo -> chunks -> finish.
+      const total = photo.size + exe.size;
+      let sent = 0;
+
+      function request(url, body, contentType, onProgress) {
+        return new Promise(function (resolve) {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', url);
+          if (contentType) xhr.setRequestHeader('Content-Type', contentType);
+          xhr.upload.onprogress = function (ev) { if (onProgress) onProgress(ev.loaded); };
+          xhr.onload = function () {
+            let data = {};
+            try { data = JSON.parse(xhr.responseText); } catch (err) {}
+            resolve({ status: xhr.status, data: data });
+          };
+          xhr.onerror = function () { resolve({ status: 0, data: {} }); };
+          xhr.send(body);
+        });
+      }
+
+      async function withRetry(url, body, contentType, base) {
+        let r;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          r = await request(url, body, contentType, function (loaded) {
+            bar.value = Math.round(((base + loaded) / total) * 100);
+          });
+          if (r.status === 200 && r.data.ok) return r;
+          if (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 409) return r; // real error
+          if (r.status === 409 && typeof r.data.size === 'number') return r; // caller resyncs
+        }
+        return r;
+      }
+
+      function fail(r) {
+        btn.disabled = false;
+        bar.hidden = true;
+        setStatus((r && r.data && r.data.error) || (r && r.status ? 'Upload failed (' + r.status + ').' : "Couldn't reach the server."), 'error');
+      }
+
+      (async function () {
+        btn.disabled = true;
+        bar.value = 0;
+        bar.hidden = false;
+        setStatus('Uploading...');
+
+        const begin = await request('/api/create/begin', JSON.stringify({ name: name, description: desc }), 'application/json');
+        if (!(begin.status === 200 && begin.data.ok)) return fail(begin);
+        const uploadId = begin.data.uploadId;
+        const chunkSize = begin.data.chunkSize || 20 * 1024 * 1024;
+        const q = 'id=' + encodeURIComponent(uploadId);
+
+        const pr = await withRetry('/api/create/photo?' + q, photo, 'application/octet-stream', 0);
+        if (!(pr.status === 200 && pr.data.ok)) { request('/api/create/cancel', JSON.stringify({ uploadId: uploadId }), 'application/json'); return fail(pr); }
+        sent += photo.size;
+
+        let offset = 0;
+        while (offset < exe.size) {
+          const piece = exe.slice(offset, offset + chunkSize);
+          const r = await withRetry('/api/create/chunk?' + q + '&offset=' + offset, piece, 'application/octet-stream', sent);
+          if (r.status === 409 && typeof r.data.size === 'number') { offset = r.data.size; sent = photo.size + offset; continue; }
+          if (!(r.status === 200 && r.data.ok)) { request('/api/create/cancel', JSON.stringify({ uploadId: uploadId }), 'application/json'); return fail(r); }
+          offset += piece.size;
+          sent = photo.size + offset;
+          bar.value = Math.round((sent / total) * 100);
+        }
+
+        const fin = await request('/api/create/finish', JSON.stringify({ uploadId: uploadId }), 'application/json');
+        if (!(fin.status === 200 && fin.data.ok)) return fail(fin);
+        btn.disabled = false;
+        bar.hidden = true;
+        form.reset();
+        setStatus('Game sent! It is waiting for an admin to publish it.', 'success');
+      })();
+    });
+  </script>
+</body>
+</html>

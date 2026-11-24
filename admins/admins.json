@@ -1,0 +1,5 @@
+{
+  "_help": "Put a player's NICKNAME (or their user id) as a key. admin = can open /admin and ban players. forumadmin = can delete forum posts and comments. Set true / false. Keys starting with _ are ignored. Changes apply immediately, no restart needed.",
+
+  "YourNickname": { "admin": true, "forumadmin": true }
+}

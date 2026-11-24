@@ -1,0 +1,8 @@
+{
+  "name": "Blue Pants",
+  "description": "Plain blue pants.",
+  "price": 0,
+  "colors": {
+    "legs": "#2b4fa3"
+  }
+}

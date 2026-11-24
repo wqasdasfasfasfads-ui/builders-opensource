@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Make a T-shirt - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <h1>Make a T-shirt</h1>
+    <p class="page-subtitle">
+      Paint a 2D picture on the classic shirt template (the same layout as in Roblox) and it is wrapped around the
+      character's body and arms. <a href="/marketplace">Back to the Marketplace</a>
+    </p>
+
+    <section class="cloth-layout">
+      <div class="cloth-panel">
+        <h2>Photo to 3D T-shirt</h2>
+        <div class="photo-box">
+          <p class="hint" style="margin-top:0">Just insert a photo - it is put on the T-shirt and you see it in 3D on the right. Then press Create.</p>
+          <div class="cloth-tools">
+            <label class="photo-pick">&#128247; Insert a photo<input type="file" id="photo-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
+            <span class="hint" id="photo-name">No photo yet</span>
+          </div>
+          <div class="cloth-tools">
+            <label class="hint">T-shirt color <input type="color" id="photo-shirt-color" value="#ffffff"></label>
+            <label class="hint">Sleeves
+              <select id="photo-sleeves">
+                <option value="short">Short</option>
+                <option value="long">Long</option>
+              </select>
+            </label>
+            <label class="hint">Place
+              <select id="photo-place">
+                <option value="chest">Print on the front</option>
+                <option value="front-full">Whole front (fill)</option>
+                <option value="both">Front and back</option>
+                <option value="back">Back only</option>
+                <option value="all">Stretch over whole shirt</option>
+              </select>
+            </label>
+          </div>
+          <div class="cloth-tools">
+            <label class="hint">Size <input type="range" id="photo-scale" min="10" max="200" value="70"></label>
+            <label class="hint">Left / right <input type="range" id="photo-x" min="-100" max="100" value="0"></label>
+            <label class="hint">Up / down <input type="range" id="photo-y" min="-100" max="100" value="0"></label>
+          </div>
+          <div class="cloth-tools">
+            <label class="hint">Rotate <input type="range" id="photo-rot" min="-180" max="180" value="0"></label>
+            <label class="hint"><input type="checkbox" id="photo-flip"> Mirror</label>
+            <label class="hint"><input type="checkbox" id="photo-nobg"> Remove white background (auto)</label>
+            <button type="button" class="play-btn play-btn--secondary" id="photo-reset">Reset photo</button>
+          </div>
+          <p class="hint" style="margin-bottom:0">Tip: you can also <b>drag the photo with the mouse</b> on the template below (inside the front / back box).</p>
+        </div>
+
+        <h2>Template</h2>
+        <div class="cloth-tools">
+          <button type="button" class="play-btn tool-on" data-tool="pencil">Pencil</button>
+          <button type="button" class="play-btn play-btn--secondary" data-tool="eraser">Eraser</button>
+          <button type="button" class="play-btn play-btn--secondary" data-tool="fill">Fill part</button>
+          <input type="color" id="cloth-color" value="#3a7bd5" aria-label="Color">
+          <label class="hint">Size <input type="range" id="cloth-size" min="1" max="24" value="4"></label>
+          <button type="button" class="play-btn play-btn--secondary" id="cloth-undo">Undo</button>
+        </div>
+        <div class="cloth-tools">
+          <span class="hint">Quick start with the chosen color:</span>
+          <button type="button" class="play-btn play-btn--secondary" id="preset-tee">Short sleeves</button>
+          <button type="button" class="play-btn play-btn--secondary" id="preset-long">Long sleeves</button>
+          <button type="button" class="play-btn play-btn--secondary" id="cloth-clear">Clear</button>
+        </div>
+
+        <div class="cloth-canvas-wrap">
+          <canvas id="cloth-draw" width="585" height="559"></canvas>
+          <canvas id="cloth-guide" width="585" height="559"></canvas>
+        </div>
+
+        <div class="cloth-tools" style="margin-top:12px">
+          <label class="hint"><input type="checkbox" id="cloth-guide-toggle" checked> Show guide lines</label>
+          <label class="play-btn play-btn--secondary">Open a PNG<input type="file" id="cloth-file" accept="image/png,image/jpeg,image/webp" hidden></label>
+          <a class="play-btn play-btn--secondary" id="cloth-download" download="tshirt.png" href="#">Save PNG</a>
+        </div>
+        <p class="hint">
+          Transparent pixels show your body color, so leave the sleeve ends empty for short sleeves.
+          Only the boxes of the guide are used: <b>front</b> / <b>back</b> / <b>sides</b> of the body in the middle,
+          the two arms below. You can also paint the template in any other program (585 x 559 PNG) and open it here.
+        </p>
+
+        <div class="cloth-form">
+          <input type="text" id="cloth-name" maxlength="30" placeholder="Name of the T-shirt" autocomplete="off">
+          <input type="text" id="cloth-desc" maxlength="200" placeholder="Description (optional)" autocomplete="off">
+          <label class="hint">Price in coins (an admin can change it when publishing)
+            <input type="number" id="cloth-price" min="0" max="10000" value="0">
+          </label>
+          <button type="button" class="play-btn" id="cloth-create">Create</button>
+          <p class="cloth-msg" id="cloth-msg"></p>
+        </div>
+      </div>
+
+      <div class="cloth-panel">
+        <h2>How it looks</h2>
+        <div class="avatar-3d avatar-3d--cloth" id="cloth-preview" data-avatar3d
+             data-colors="<%= JSON.stringify(user.colors || {}) %>">
+          <%- avatarSvg(user.colors, 180) %>
+        </div>
+        <div class="cloth-tools" style="justify-content:center">
+          <button type="button" class="play-btn play-btn--secondary" data-view="0">Front</button>
+          <button type="button" class="play-btn play-btn--secondary" data-view="1.5708">Left</button>
+          <button type="button" class="play-btn play-btn--secondary" data-view="3.1416">Back</button>
+          <button type="button" class="play-btn play-btn--secondary" data-view="-1.5708">Right</button>
+        </div>
+        <p class="hint avatar-3d__hint">Drag to rotate. The preview updates while you change the photo or paint.</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/avatar3d.js?v=<%= Date.now() %>"></script>
+  <script type="module" src="/clothing-editor.js?v=<%= Date.now() %>"></script>
+</body>
+</html>

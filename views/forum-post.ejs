@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= post.title %> - Builders</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/style.css?v=<%= assetV %>">
+</head>
+<body>
+  <%- include('partials/corner-nav', { user, active }) %>
+
+  <main class="page">
+    <p class="hint"><a href="/forum">&larr; Forum</a></p>
+
+    <article class="forum-post">
+      <h1><%= post.title %></h1>
+      <div class="forum-item__meta">
+        <%- include('partials/author', { a: author }) %>
+        <span><%= fmtDate(post.createdAt) %></span>
+      </div>
+      <% if (post.body) { %><p class="forum-post__body"><%= post.body %></p><% } %>
+      <% if (post.imageExt) { %>
+        <img class="forum-post__image" src="/forum/<%= post.id %>/image" alt="">
+      <% } %>
+      <% if (canModerate) { %>
+        <form method="post" action="/forum/<%= post.id %>/delete" class="inline-ban"
+              onsubmit="return confirm('Delete this post and all its comments?')">
+          <button type="submit" class="danger-btn">Delete post</button>
+        </form>
+      <% } %>
+    </article>
+
+    <section id="comments">
+      <h2>Comments (<%= comments.length %>)</h2>
+      <% if (flash) { %><p class="<%= flash.type === 'error' ? 'error' : 'success' %>"><%= flash.text %></p><% } %>
+
+      <% if (comments.length === 0) { %>
+        <p class="empty-state">No comments yet.</p>
+      <% } %>
+      <ul class="comment-list">
+        <% comments.forEach(function (c) { %>
+          <li class="comment">
+            <div class="forum-item__meta">
+              <%- include('partials/author', { a: c.author }) %>
+              <span><%= fmtDate(c.createdAt) %></span>
+              <% if (canModerate) { %>
+                <form method="post" action="/forum/<%= post.id %>/comment/<%= c.id %>/delete" class="inline-ban"
+                      onsubmit="return confirm('Delete this comment?')">
+                  <button type="submit" class="danger-btn danger-btn--small">Delete</button>
+                </form>
+              <% } %>
+            </div>
+            <p class="comment__body"><%= c.body %></p>
+          </li>
+        <% }); %>
+      </ul>
+
+      <form method="post" action="/forum/<%= post.id %>/comment" class="post-form">
+        <label>Add a comment
+          <textarea name="body" rows="3" maxlength="1000" required></textarea>
+        </label>
+        <button type="submit">Comment</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
